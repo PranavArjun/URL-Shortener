@@ -1,9 +1,11 @@
 package com.app.url_shortener.entities;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.Instant;
 
+@Data
 @Entity
 @Table(name = "short_urls")
 public class ShortUrl {
