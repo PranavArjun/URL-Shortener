@@ -1,11 +1,15 @@
 package com.app.url_shortener.controller;
 
+import com.app.url_shortener.dto.CreateShortUrlRequestDto;
+import com.app.url_shortener.dto.ShortUrlResponseDto;
 import com.app.url_shortener.entities.ShortUrl;
 import com.app.url_shortener.service.ShortUrlService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -18,7 +22,21 @@ public class ShortUrlController {
     }
 
     @GetMapping
-    public List<ShortUrl> getAllPublicShortUrls(){
+    public List<ShortUrlResponseDto> getAllPublicShortUrls(){
         return service.getAllPublicShortUrls();
+    }
+
+    @PostMapping
+    public ResponseEntity<ShortUrlResponseDto> createShortUrl(
+            @Valid @RequestBody CreateShortUrlRequestDto request){
+        return ResponseEntity.ok(service.createShortUrl(request));
+    }
+
+    @GetMapping("/{shortKey}")
+    public ResponseEntity<Void> redirectToOriginalURL(@PathVariable String shortKey){
+        String originalUrl = service.getOriginalUrl(shortKey);
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(originalUrl)).build();
     }
 }
