@@ -3,7 +3,9 @@ package com.app.url_shortener.service;
 import com.app.url_shortener.dto.CreateShortUrlRequestDto;
 import com.app.url_shortener.dto.ShortUrlResponseDto;
 import com.app.url_shortener.entities.ShortUrl;
+import com.app.url_shortener.entities.User;
 import com.app.url_shortener.repository.ShortUrlRepository;
+import com.app.url_shortener.repository.UserRepository;
 import com.app.url_shortener.util.ShortKeyGenerator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -16,18 +18,20 @@ import java.util.List;
 
 @Service
 public class ShortUrlService {
-    private final ShortUrlRepository repository;
+    private final ShortUrlRepository shortUrlRepository;
     private final EntityDtoMapper entityDtoMapper;
+    private final UserRepository userRepository;
 
 
-    public ShortUrlService(ShortUrlRepository repository,EntityDtoMapper entityDtoMapper){
-        this.repository=repository;
+    public ShortUrlService(ShortUrlRepository shortUrlRepository,EntityDtoMapper entityDtoMapper,UserRepository userRepository){
+        this.shortUrlRepository=shortUrlRepository;
         this.entityDtoMapper=entityDtoMapper;
+        this.userRepository=userRepository;
     }
 
 //    Get all Public URLS
     public List<ShortUrlResponseDto> getAllPublicShortUrls() {
-        return repository.getAllPublicShortUrls()
+        return shortUrlRepository.getAllPublicShortUrls()
                 .stream().map(url-> entityDtoMapper.toShortUrlDto(url)).toList();
     }
     public ShortUrlResponseDto createShortUrl(CreateShortUrlRequestDto request){
@@ -35,7 +39,7 @@ public class ShortUrlService {
         String shortKey;
         do{
             shortKey = ShortKeyGenerator.generateShortKey();
-        }while(repository.existsByShortKey(shortKey));
+        }while(shortUrlRepository.existsByShortKey(shortKey));
 
 //        Create entity
         ShortUrl shortUrl = new ShortUrl();
@@ -47,7 +51,7 @@ public class ShortUrlService {
         shortUrl.setCreatedBy(null);
 
 //        Save in db
-        ShortUrl saved = repository.save(shortUrl);
+        ShortUrl saved = shortUrlRepository.save(shortUrl);
         System.out.println(saved);
 
 //       Convert response to DTO
@@ -55,7 +59,7 @@ public class ShortUrlService {
     }
 
     public String getOriginalUrl(String shortUrlKey){
-        ShortUrl url = repository.findByShortKey(shortUrlKey).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"URL not found"));
+        ShortUrl url = shortUrlRepository.findByShortKey(shortUrlKey).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"URL not found"));
 
         if(url.getExpiresAt()==null || url.getExpiresAt().isBefore(Instant.now())){
             throw new ResponseStatusException(HttpStatus.GONE,"URl expired");
@@ -63,9 +67,13 @@ public class ShortUrlService {
 
 //        increment click count
         url.setClickCount(url.getClickCount()+1);
-        repository.save(url);
+        shortUrlRepository.save(url);
 
         return url.getOriginalUrl();
+    }
+
+    public List<ShortUrl> getUserUrls(String email){
+        return shortUrlRepository.findByCreatedByEmail(email);
     }
 }
 

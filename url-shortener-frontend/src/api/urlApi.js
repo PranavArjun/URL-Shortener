@@ -5,3 +5,7 @@ const BASE_URL = "http://localhost:8080/api/urls";
 export const createShortUrl = (data)=>{
     return axios.post(BASE_URL,data);
 }
+
+export const getAllUrls = ()=> {
+    return axios.get(BASE_URL);
+}

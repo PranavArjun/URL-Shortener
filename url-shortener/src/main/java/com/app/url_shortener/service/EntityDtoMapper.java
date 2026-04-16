@@ -27,6 +27,6 @@ public class EntityDtoMapper {
     }
 
     public UserResponseDto toUserDto(User user) {
-        return new UserResponseDto(user.getId(), user.getName());
+        return new UserResponseDto(user.getId(), user.getName(),user.getEmail(),user.getRole().name());
     }
 }

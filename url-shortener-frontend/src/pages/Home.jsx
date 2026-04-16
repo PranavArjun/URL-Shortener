@@ -1,9 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UrlForm from "../components/UrlForm";
-import { createShortUrl } from "../api/urlApi";
+import { createShortUrl, getAllUrls } from "../api/urlApi";
+import UrlList from "../components/UrlList";
 function Home() {
     const [urls, setUrls] = useState([]);
+    const featchUrls = async () => {
+        try {
+            const res = await getAllUrls();
+            console.log(res);
+            setUrls(res.data);
+        } catch (error) {
+            console.error("Error featcing URLs");
+        }
+    }
+    useEffect(() => {
+        featchUrls();
+    }, []);
 
+    // Create new URLs
     const handleCreate = async (originalUrl) => {
         try {
             const res = await createShortUrl({ originalUrl });
@@ -14,8 +28,16 @@ function Home() {
         }
     }
     return (
-        <div className="p-6 max-w-3xl mx-auto">
-            <UrlForm onCreate={handleCreate} />
+        <div className="p-6">
+            <div className="max-w-3xl mx-auto mb-6">
+                <UrlForm onCreate={handleCreate} />
+            </div>
+
+            {/* Table */}
+            <div className="w-full">
+                <UrlList urls={urls} />
+            </div>
+
         </div>
     )
 }

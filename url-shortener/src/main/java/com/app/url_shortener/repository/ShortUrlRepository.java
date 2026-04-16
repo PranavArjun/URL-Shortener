@@ -1,6 +1,7 @@
 package com.app.url_shortener.repository;
 
 import com.app.url_shortener.entities.ShortUrl;
+import com.app.url_shortener.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -18,4 +19,7 @@ public interface ShortUrlRepository extends JpaRepository<ShortUrl,Long> {
 
 
     Optional<ShortUrl> findByShortKey(String shortUrlKey);
+
+
+    List<ShortUrl> findByCreatedByEmail(String email);
 }
