@@ -47,7 +47,7 @@ public class ShortUrlController {
     }
 
     @GetMapping("/my-urls")
-    public List<ShortUrl> getLoggedInUser(){
+    public List<ShortUrlResponseDto> getLoggedInUser(){
         String email =  SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getName();

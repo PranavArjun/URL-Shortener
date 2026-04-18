@@ -7,7 +7,6 @@ function Home() {
     const featchUrls = async () => {
         try {
             const res = await getAllUrls();
-            console.log(res);
             setUrls(res.data);
         } catch (error) {
             console.error("Error featcing URLs");

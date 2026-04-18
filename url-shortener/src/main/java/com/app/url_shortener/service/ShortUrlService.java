@@ -9,6 +9,8 @@ import com.app.url_shortener.repository.UserRepository;
 import com.app.url_shortener.util.ShortKeyGenerator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -48,7 +50,16 @@ public class ShortUrlService {
         shortUrl.setIsPrivate(false);
         shortUrl.setCreatedAt(Instant.now());
         shortUrl.setExpiresAt(Instant.now().plus(1, ChronoUnit.DAYS));
-        shortUrl.setCreatedBy(null);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth!=null && auth.isAuthenticated()){
+            User user = userRepository.findByEmail(auth.getName()).orElse(null);
+            shortUrl.setCreatedBy(user);
+        }
+        else{
+            shortUrl.setCreatedBy(null);
+        }
+
 
 //        Save in db
         ShortUrl saved = shortUrlRepository.save(shortUrl);
@@ -72,8 +83,9 @@ public class ShortUrlService {
         return url.getOriginalUrl();
     }
 
-    public List<ShortUrl> getUserUrls(String email){
-        return shortUrlRepository.findByCreatedByEmail(email);
+    public List<ShortUrlResponseDto> getUserUrls(String email){
+        return shortUrlRepository.findByCreatedByEmail(email).
+                stream().map((url)->entityDtoMapper.toShortUrlDto(url)).toList();
     }
 }
 

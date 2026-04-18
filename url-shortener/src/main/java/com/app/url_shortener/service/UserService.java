@@ -5,8 +5,10 @@ import com.app.url_shortener.dto.UserRegisterRequestDto;
 import com.app.url_shortener.entities.User;
 import com.app.url_shortener.model.Role;
 import com.app.url_shortener.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UserService {
@@ -21,7 +23,7 @@ public class UserService {
     public User register(UserRegisterRequestDto registerRequestDto){
 //        Check if email already present in DB
         if (userRepository.findByEmail(registerRequestDto.email()).isPresent()) {
-            throw new RuntimeException("Email already register. Please log in");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Email already register. Please log in");
         }
 //        Create User object
         User user = new User();
