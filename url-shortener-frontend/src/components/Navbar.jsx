@@ -1,9 +1,15 @@
+import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 
 function Navbar() {
+    const token = localStorage.getItem("token");
+    let role = null;
+    if(token){
+        const decodedToken = jwtDecode(token);
+        role= decodedToken.role;
+    }
     const navigate = useNavigate();
 
-    const token = localStorage.getItem("token");
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -19,8 +25,9 @@ function Navbar() {
 
             {/* CenterLinks */}
             <div className="space-x-6 hidden md:flex">
-                <Link to="/my-urls" className="hover:text-blue-400 transition">My URLs</Link>
-                <Link to="/admin-dashboard" className="hover:text-blue-400 transition">Admin</Link>
+               {token &&  <Link to="/my-urls" className="hover:text-blue-400 transition">My URLs</Link> }
+
+               {token && role ==="ROLE_ADMIN" && (<Link to="/admin-dashboard" className="hover:text-blue-400 transition">Admin</Link>)}
             </div>
 
             {/* Auth Btns */}

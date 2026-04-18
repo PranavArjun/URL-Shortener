@@ -1,7 +1,7 @@
 import React from 'react'
 
 function UrlItem({url}) {
-    const shortUrl = `http://localhost:8080/api/urls/${url.shortKey}`;
+    const shortUrl = `${import.meta.env.VITE_API_URL}/api/urls/${url.shortKey}`;
 
   return (
     <tr className='border-t'>

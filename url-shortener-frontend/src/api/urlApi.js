@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/api/urls";
+
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api/urls`;
 
 export const createShortUrl = (data)=>{
     const token = localStorage.getItem("token");

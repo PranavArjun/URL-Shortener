@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -83,6 +84,7 @@ public class ShortUrlService {
         return url.getOriginalUrl();
     }
 
+    @Transactional(readOnly = true)
     public List<ShortUrlResponseDto> getUserUrls(String email){
         return shortUrlRepository.findByCreatedByEmail(email).
                 stream().map((url)->entityDtoMapper.toShortUrlDto(url)).toList();

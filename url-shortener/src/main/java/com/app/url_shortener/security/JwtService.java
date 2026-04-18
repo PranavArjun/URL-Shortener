@@ -4,6 +4,7 @@ import com.app.url_shortener.entities.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -14,7 +15,8 @@ import java.util.Objects;
 
 @Service
 public class JwtService {
-    private final String SECRET = "My-key-My-key-My-key-My-key-My-key-"; //Later move to config
+    @Value("${jwt.secret}")
+    private  String SECRET ; //Later move to config
     private Key getSignKey(){
         return Keys.hmacShaKeyFor(SECRET.getBytes());
     }
