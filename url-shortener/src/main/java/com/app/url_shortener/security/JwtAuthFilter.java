@@ -1,5 +1,6 @@
 package com.app.url_shortener.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,20 +24,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
-        if(authHeader==null || !authHeader.startsWith("Bearer")){
+        if(authHeader==null || !authHeader.startsWith("Bearer ")){
             filterChain.doFilter(request,response);
             return;
         }
-        String token = authHeader.substring(7);
-        String email = jwtService.extractEmail(token);
-        String role = jwtService.extractAllClaims(token).get("role",String.class);
-        if(email != null){
-            if(email != null && jwtService.isTokenValid(token)){
+        String token = authHeader.substring(7); // First 7 characters are for Barer word then actual token
+        Claims claims = jwtService.extractAllClaims(token);
+        String email = claims.getSubject();
+        String role = claims.get("role",String.class);
+        if(email != null && jwtService.isTokenValid(token)){
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email,null, List.of(new SimpleGrantedAuthority(role)));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-
         }
+
+
 
         filterChain.doFilter(request,response);
 

@@ -1,45 +1,58 @@
-import React, { useEffect, useState } from 'react'
-import UrlForm from "../components/UrlForm";
+import { useEffect, useRef, useState } from "react";
 import UrlList from "../components/UrlList";
-import { getMyURLS } from '../api/urlApi';
+import Pagination from "../components/Pagination";
+import Loading from "../components/Loading";
+import { getMyURLS } from "../api/urlApi";
 
 function MyURLs() {
-  const [urls, setUrls] = useState([]);
-  const featchUrls = async () => {
-    try {
-      const res = await getMyURLS();
-      setUrls(res.data);
-    } catch (error) {
-      console.log(error)
-    }
-  }
-  useEffect(() => {
-    featchUrls();
-  }, []);
+    const [urls, setUrls] = useState([]);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
 
-  // Create new URLs
-  // const handleCreate = async (originalUrl) => {
-  //     try {
-  //         const res = await createShortUrl({ originalUrl });
-  //         setUrls((prev) => [res.data, ...prev]);
-  //     } catch (error) {
-  //         console.error(error);
-  //         throw error;
-  //     }
-  // }
-  return (
-    <div className="p-6">
-      {/* <div className="max-w-3xl mx-auto mb-6">
-        <UrlForm onCreate={handleCreate} />
-      </div> */}
+    const fetched = useRef(false);
 
-      {/* Table */}
-      <div className="w-full">
-        <UrlList urls={urls} />
-      </div>
+    const fetchUrls = async (pageNo = 0) => {
+        try {
+            setLoading(true);
 
-    </div>
-  )
+            const res = await getMyURLS(pageNo);
+
+            setUrls(res.data.content);
+            setPage(res.data.number);
+            setTotalPages(res.data.totalPages);
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (fetched.current) return;
+
+        fetched.current = true;
+        fetchUrls(0);
+    }, []);
+
+    return (
+        <div className="min-h-screen flex flex-col p-6">
+
+            <div className="grow w-full">
+                {loading ? <Loading /> : <UrlList urls={urls} />}
+            </div>
+
+            {!loading && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={fetchUrls}
+                />
+            )}
+
+        </div>
+    );
 }
 
-export default MyURLs
+export default MyURLs;

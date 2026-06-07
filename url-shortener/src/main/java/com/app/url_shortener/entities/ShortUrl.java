@@ -7,7 +7,14 @@ import java.time.Instant;
 
 @Data
 @Entity
-@Table(name = "short_urls")
+@Table(
+        name = "short_urls",
+        indexes = {
+                @Index(name = "idx_created_at", columnList = "created_at"),
+                @Index(name = "idx_is_private_created_at", columnList = "is_private, created_at"),
+                @Index(name = "idx_created_by_created_at", columnList = "created_by, created_at")
+        }
+)
 public class ShortUrl {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "short_urls_id_gen")

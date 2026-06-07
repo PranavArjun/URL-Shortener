@@ -7,8 +7,13 @@ import com.app.url_shortener.entities.User;
 import com.app.url_shortener.repository.ShortUrlRepository;
 import com.app.url_shortener.repository.UserRepository;
 import com.app.url_shortener.util.ShortKeyGenerator;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,25 +23,34 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ShortUrlService {
     private final ShortUrlRepository shortUrlRepository;
     private final EntityDtoMapper entityDtoMapper;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, String> redisTemplate;
 
 
-    public ShortUrlService(ShortUrlRepository shortUrlRepository,EntityDtoMapper entityDtoMapper,UserRepository userRepository){
-        this.shortUrlRepository=shortUrlRepository;
-        this.entityDtoMapper=entityDtoMapper;
-        this.userRepository=userRepository;
-    }
+
 
 //    Get all Public URLS
-    public List<ShortUrlResponseDto> getAllPublicShortUrls() {
-        return shortUrlRepository.getAllPublicShortUrls()
-                .stream().map(url-> entityDtoMapper.toShortUrlDto(url)).toList();
+    public Page<ShortUrlResponseDto> getAllPublicShortUrls(int page) {
+
+        Pageable pageable = PageRequest.of(page,10, Sort.by("createdAt").descending());
+        return shortUrlRepository.getAllPublicShortUrls(pageable)
+                .map(url->{
+                    String pendingClickCount = redisTemplate.opsForValue().get("clicks:"+url.getShortKey());
+                    Long pendingClicks = pendingClickCount != null ? Long.parseLong(pendingClickCount) : 0L;
+                    Long totalClickCount = pendingClicks + url.getClickCount();
+                    return entityDtoMapper.toShortUrlDto(url,totalClickCount);
+                });
     }
+
+    @Transactional
     public ShortUrlResponseDto createShortUrl(CreateShortUrlRequestDto request){
 //        Generate unique key
         String shortKey;
@@ -66,28 +80,52 @@ public class ShortUrlService {
         ShortUrl saved = shortUrlRepository.save(shortUrl);
         System.out.println(saved);
 
+        // Cache the new URL immediately after creation
+        long secondsLeft = saved.getExpiresAt().getEpochSecond() - Instant.now().getEpochSecond();
+        redisTemplate.opsForValue().set("url:" + saved.getShortKey(), saved.getOriginalUrl(), secondsLeft, TimeUnit.SECONDS);
+
 //       Convert response to DTO
         return entityDtoMapper.toShortUrlDto(saved);
     }
 
     public String getOriginalUrl(String shortUrlKey){
-        ShortUrl url = shortUrlRepository.findByShortKey(shortUrlKey).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"URL not found"));
+//        Checking if data present in Redis
+        String urlKey = "url:" + shortUrlKey;
+        String cachedUrl = redisTemplate.opsForValue().get(urlKey);
 
-        if(url.getExpiresAt()==null || url.getExpiresAt().isBefore(Instant.now())){
+//        If URL available in cache increment click count in cache only no db calls
+        if(cachedUrl != null){
+            redisTemplate.opsForValue().increment("clicks:" + shortUrlKey);
+            return cachedUrl;
+        }
+
+        ShortUrl url = shortUrlRepository.findByShortKey(shortUrlKey).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"URL not found"));
+        Instant now = Instant.now();
+//      For not to have race conditions because many instant now
+        if(url.getExpiresAt()==null || url.getExpiresAt().isBefore(now)){
             throw new ResponseStatusException(HttpStatus.GONE,"URl expired");
         }
 
-//        increment click count
-        url.setClickCount(url.getClickCount()+1);
-        shortUrlRepository.save(url);
+        long secondsLeft = url.getExpiresAt().getEpochSecond() - now.getEpochSecond();
+
+//        In redis set works as key, value, timeout , timeUnit
+        redisTemplate.opsForValue().set(urlKey, url.getOriginalUrl(), secondsLeft, TimeUnit.SECONDS);
+
+//        increment click count in cache nt in db
+        redisTemplate.opsForValue().increment("clicks:" + shortUrlKey);
 
         return url.getOriginalUrl();
     }
 
-    @Transactional(readOnly = true)
-    public List<ShortUrlResponseDto> getUserUrls(String email){
-        return shortUrlRepository.findByCreatedByEmail(email).
-                stream().map((url)->entityDtoMapper.toShortUrlDto(url)).toList();
+    public Page<ShortUrlResponseDto> getUserUrls(String email,int page){
+        Pageable pageable = PageRequest.of(page,10,Sort.by("createdAt").descending());
+        return shortUrlRepository.findByCreatedByEmail(email,pageable)
+                .map(url->{
+                    String pendingClickCount = redisTemplate.opsForValue().get("clicks:"+url.getShortKey());
+                    Long pendingClicks = pendingClickCount != null ? Long.parseLong(pendingClickCount) : 0L;
+                    Long totalClickCount = pendingClicks + url.getClickCount();
+                    return entityDtoMapper.toShortUrlDto(url,totalClickCount);
+                });
     }
 }
 

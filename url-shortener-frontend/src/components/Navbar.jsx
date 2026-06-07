@@ -1,8 +1,11 @@
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
+import { isTokenValid, logout } from "../api/authApi";
 
 function Navbar() {
     const token = localStorage.getItem("token");
+    const isLogedIn = isTokenValid();
+    console.log(isLogedIn);
     let role = null;
     if(token){
         const decodedToken = jwtDecode(token);
@@ -12,7 +15,7 @@ function Navbar() {
 
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
+        logout();
         navigate("/login");
     };
 

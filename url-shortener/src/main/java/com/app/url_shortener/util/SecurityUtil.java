@@ -1,0 +1,22 @@
+package com.app.url_shortener.util;
+
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+public class SecurityUtil {
+    public static boolean isLoggedIn(){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        return (auth!=null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken));
+    }
+
+    public static String getCurrentUsername(){
+        if(isLoggedIn()){
+            return SecurityContextHolder.getContext()
+                    .getAuthentication()
+                    .getName();
+        }
+        return null;
+    }
+}

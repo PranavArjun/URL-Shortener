@@ -1,28 +1,14 @@
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
+
+export const createShortUrl = (data) => {
+  return axiosInstance.post("/urls", data);
+};
+
+export const getAllUrls = (page = 0) => {
+  return axiosInstance.get(`/urls?page=${page}`);
+};
 
 
-const BASE_URL = `${import.meta.env.VITE_API_URL}/api/urls`;
-
-export const createShortUrl = (data)=>{
-    const token = localStorage.getItem("token");
-    return axios.post(BASE_URL,data,
-        {
-            headers : {
-                Authorization:`Bearer ${token}`
-            }
-        }
-    );
-}
-
-export const getAllUrls = ()=> {
-    return axios.get(BASE_URL);
-}
-
-export const getMyURLS = () =>{
-    const token = localStorage.getItem("token");
-    return axios.get(`${BASE_URL}/my-urls`,{
-        headers :{
-            Authorization: `Bearer ${token}`
-        }
-    });
-}
+export const getMyURLS = (page = 0) => {
+  return axiosInstance.get(`/urls/my-urls?page=${page}`);
+};
