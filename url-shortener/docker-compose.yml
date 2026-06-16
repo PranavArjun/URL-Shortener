@@ -1,0 +1,27 @@
+networks:
+  public-network:
+  private-network:
+
+services:
+  frontend:
+    build: ../url-shortener-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - public-network
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - public-network
+      - private-network
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - private-network
