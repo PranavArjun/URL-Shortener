@@ -5,20 +5,19 @@ import com.app.url_shortener.dto.UserRegisterRequestDto;
 import com.app.url_shortener.entities.User;
 import com.app.url_shortener.model.Role;
 import com.app.url_shortener.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
-    public UserService(UserRepository userRepository,PasswordEncoder passwordEncoder){
-        this.userRepository=userRepository;
-        this.passwordEncoder=passwordEncoder;
-    }
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public User register(UserRegisterRequestDto registerRequestDto){
 //        Check if email already present in DB
@@ -35,7 +34,13 @@ public class UserService {
 
         user.setRole(Role.ROLE_USER);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        //      publish event to kafka - notify that a new user registered
+        kafkaTemplate.send("user-registered", savedUser.getEmail());
+        System.out.println("Published event: " + savedUser.getEmail());
+
+        return savedUser;
     }
 
     public User login(UserLogInDto logInDto){
